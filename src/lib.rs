@@ -36,7 +36,7 @@ pub struct Client {
 }
 
 #[derive(Debug, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct LoginResponse {
   id: String,
   created_at: String,
@@ -68,7 +68,7 @@ pub struct LoginResponse {
 
 
 #[derive(Debug, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 #[serde(rename_all = "PascalCase")]
 pub struct PoolOAuth {
   access_token: String,
@@ -79,7 +79,7 @@ pub struct PoolOAuth {
 }
 
 #[derive(Debug, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct System {
   id: usize,
   name: String,
@@ -96,23 +96,26 @@ pub struct System {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
-#[serde(rename_all = "snake_case")]
-pub enum Equipment {
-  Robot(Robot),
-  #[serde(rename = "swc_0")]
-  Swc0(SaltWaterChlorinator)
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct RobotEquipment {
+  robot: Robot,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct SaltWaterChlorinatorEquipment {
+  swc_0: SaltWaterChlorinator,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Timer {
   start: String,
   end: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Schedule {
   active: usize,
   enabled: usize,
@@ -123,7 +126,7 @@ pub struct Schedule {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Schedules {
   programmed: usize,
   supported: usize,
@@ -136,13 +139,13 @@ pub struct Schedules {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct State {
   reported: serde_json::Value,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Heating {
   enabled: usize,
   priority_enabled: usize,
@@ -153,37 +156,106 @@ pub struct Heating {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
-#[serde(rename_all = "camelCase")]
-pub struct ReportedState {
-  dt: Option<String>,
-  aws: serde_json::Value,
-  ebox_data: Option<serde_json::Value>,
-  equipment: Equipment,
-  job_id: Option<String>,
-  sn: Option<String>,
-  vr: String,
-  main: Option<serde_json::Value>,
-  hmi: Option<serde_json::Value>,
-  schedules: Option<Schedules>,
-  state: Option<serde_json::Value>,
-  heating: Option<Heating>,
-  debug: Option<serde_json::Value>,
+#[serde(rename_all = "snake_case")]
+pub enum AwsStateStatus {
+  Connected,
+  Disconnected,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct AwsState {
+  session_id: String,
+  status: AwsStateStatus,
+  timestamp: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+#[serde(rename_all = "camelCase")]
+pub struct EboxData {
+  complete_cleaner_pn: String,
+  complete_cleaner_sn: String,
+  control_box_pn: String,
+  control_box_sn: String,
+  motor_block_sn: String,
+  power_supply_sn: String,
+  sensor_block_sn: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+#[serde(untagged)]
+pub enum ReportedState {
+  #[serde(rename_all = "camelCase")]
+  Exo {
+    aws: AwsState,
+    equipment: SaltWaterChlorinatorEquipment,
+    vr: String,
+    main: Option<serde_json::Value>,
+    hmi: Option<serde_json::Value>,
+    schedules: Option<Schedules>,
+    state: Option<serde_json::Value>,
+    heating: Option<Heating>,
+    debug: Option<serde_json::Value>,
+  },
+  #[serde(rename_all = "camelCase")]
+  Vr {
+    dt: String,
+    aws: AwsState,
+    ebox_data: EboxData,
+    equipment: RobotEquipment,
+    job_id: String,
+    sn: String,
+    vr: String
+  },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct DeviceState {
   reported: ReportedState,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceShadow {
   device_id: String,
   state: DeviceState,
   ts: usize,
+}
+
+impl System {
+  fn shadow_url(&self) -> reqwest::Url {
+    reqwest::Url::parse(IAQUALINK_DEVICES_V1_URL)
+      .and_then(|url| url.join(&format!("{}/shadow", self.serial_number)))
+      .unwrap()
+  }
+
+  // See: https://community.home-assistant.io/t/jandy-iaqualink-pool-integration/105633/276
+  pub async fn shadow(&self, login_response: &LoginResponse) -> reqwest::Result<DeviceShadow> {
+    let http_client = Client::client()?;
+
+    http_client.get(self.shadow_url())
+      .bearer_auth(&login_response.user_pool_oauth.id_token)
+      .send()
+      .await?
+      .json()
+      .await
+  }
+
+  pub async fn set_shadow<S: Serialize>(&self, login_response: &LoginResponse, value: S) -> reqwest::Result<serde_json::Value> {
+    let http_client = Client::client()?;
+
+    http_client.post(self.shadow_url())
+      .bearer_auth(&login_response.user_pool_oauth.id_token)
+      .json(&value)
+      .send()
+      .await?
+      .json()
+      .await
+  }
 }
 
 impl Client {
@@ -294,38 +366,6 @@ impl Client {
 
     http_client.get(url)
       .bearer_auth(&login_response.user_pool_oauth.id_token)
-      .send()
-      .await?
-      .json()
-      .await
-  }
-
-  // See: https://community.home-assistant.io/t/jandy-iaqualink-pool-integration/105633/276
-  pub async fn shadow(&self, serial: &str, login_response: &LoginResponse) -> reqwest::Result<DeviceShadow> {
-    let http_client = Self::client()?;
-
-    let url = reqwest::Url::parse(IAQUALINK_DEVICES_V1_URL)
-      .and_then(|url| url.join(&format!("{}/shadow", serial)))
-      .unwrap();
-
-    http_client.get(url)
-      .bearer_auth(&login_response.user_pool_oauth.id_token)
-      .send()
-      .await?
-      .json()
-      .await
-  }
-
-  pub async fn set_shadow<S: Serialize>(&self, serial: &str, login_response: &LoginResponse, value: S) -> reqwest::Result<serde_json::Value> {
-    let http_client = Self::client()?;
-
-    let url = reqwest::Url::parse(IAQUALINK_DEVICES_V1_URL)
-      .and_then(|url| url.join(&format!("{}/shadow", serial)))
-      .unwrap();
-
-    http_client.post(url)
-      .bearer_auth(&login_response.user_pool_oauth.id_token)
-      .json(&value)
       .send()
       .await?
       .json()

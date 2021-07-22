@@ -1,10 +1,8 @@
-use std::collections::HashMap;
-
 use serde::{Serialize, Deserialize};
 use serde_repr::{Serialize_repr, Deserialize_repr};
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 #[serde(rename_all = "camelCase")]
 pub struct Durations {
   custom_tim: usize,
@@ -16,7 +14,7 @@ pub struct Durations {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct RobotSensor {
   #[serde(rename = "type")]
   sensor_type: String,
@@ -24,7 +22,7 @@ pub struct RobotSensor {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct RobotSensors {
   sns_1: RobotSensor,
   sns_2: RobotSensor,
@@ -32,7 +30,7 @@ pub struct RobotSensors {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 #[serde(rename_all = "camelCase")]
 pub struct Robot {
   canister: usize,

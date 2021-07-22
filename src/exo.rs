@@ -1,10 +1,8 @@
-use std::collections::HashMap;
-
 use serde::{Serialize, Deserialize};
 use serde_repr::{Serialize_repr, Deserialize_repr};
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Sensor {
   sensor_type: String,
   state: usize,
@@ -12,7 +10,7 @@ pub struct Sensor {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct FilterPump {
   #[serde(rename = "type")]
   pump_type: usize,
@@ -39,7 +37,7 @@ pub enum Color {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Auxiliary {
   #[serde(rename = "type")]
   aux_type: String,
@@ -49,7 +47,7 @@ pub struct Auxiliary {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(debug, serde(deny_unknown_fields))]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct SaltWaterChlorinator {
   amp: usize,
   temp: usize,
