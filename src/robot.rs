@@ -1,5 +1,4 @@
 use serde::{Serialize, Deserialize};
-use serde_repr::{Serialize_repr, Deserialize_repr};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]

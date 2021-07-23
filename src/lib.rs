@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use reqwest::Method;
 use serde::{Serialize, Deserialize};
 
 mod exo;
@@ -14,7 +15,6 @@ pub const IAQUALINK_LOGIN_URL: &'static str = "https://prod.zodiac-io.com/users/
 pub const IAQUALINK_DEVICES_URL: &'static str = "https://r-api.iaqualink.net/devices.json";
 pub const IAQUALINK_DEVICES_V1_URL: &'static str = "https://prod.zodiac-io.com/devices/v1/";
 pub const IAQUALINK_DEVICES_V2_URL: &'static str = "https://prod.zodiac-io.com/devices/v2/";
-pub const IAQUALINK_PROD_URL: &'static str = "https://storage.googleapis.com/zodiac-iaqua-message-prod/message.json";
 
 pub const IAQUALINK_COMMAND_GET_DEVICES: &'static str = "get_devices";
 pub const IAQUALINK_COMMAND_GET_HOME: &'static str = "get_home";
@@ -227,52 +227,48 @@ pub struct DeviceShadow {
 }
 
 impl System {
-  fn shadow_url(&self) -> reqwest::Url {
+  fn request(&self, method: Method, path: &str, login_response: &LoginResponse) -> reqwest::RequestBuilder {
+    reqwest::Client::new()
+      .request(method, self.url(path))
+      .bearer_auth(&login_response.user_pool_oauth.id_token)
+  }
+
+  fn url(&self, path: &str) -> reqwest::Url {
     reqwest::Url::parse(IAQUALINK_DEVICES_V1_URL)
-      .and_then(|url| url.join(&format!("{}/shadow", self.serial_number)))
+      .and_then(|url| url.join(&format!("{}/{}", self.serial_number, path)))
       .unwrap()
+  }
+
+  pub async fn site(&self, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
+    self.request(Method::GET, "site", login_response).send().await?.json().await
+  }
+
+  pub async fn info(&self, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
+    self.request(Method::GET, "info", login_response).send().await?.json().await
+  }
+
+  pub async fn features(&self, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
+    self.request(Method::GET, "features", login_response).send().await?.json().await
   }
 
   // See: https://community.home-assistant.io/t/jandy-iaqualink-pool-integration/105633/276
   pub async fn shadow(&self, login_response: &LoginResponse) -> reqwest::Result<DeviceShadow> {
-    let http_client = Client::client()?;
-
-    http_client.get(self.shadow_url())
-      .bearer_auth(&login_response.user_pool_oauth.id_token)
-      .send()
-      .await?
-      .json()
-      .await
+    self.request(Method::GET, "shadow", login_response).send().await?.json().await
   }
 
   pub async fn set_shadow<S: Serialize>(&self, login_response: &LoginResponse, value: S) -> reqwest::Result<serde_json::Value> {
-    let http_client = Client::client()?;
-
-    http_client.post(self.shadow_url())
-      .bearer_auth(&login_response.user_pool_oauth.id_token)
-      .json(&value)
-      .send()
-      .await?
-      .json()
-      .await
+    self.request(Method::POST, "shadow", login_response).json(&value).send().await?.json().await
   }
 }
 
 impl Client {
-  fn client() -> reqwest::Result<reqwest::Client> {
-    reqwest::Client::builder()
-      // .user_agent("iAqualink/447 CFNetwork/1240.0.4 Darwin/20.5.0")
-      .build()
-  }
-
   pub async fn sign_in(&self) -> reqwest::Result<LoginResponse> {
-    let http_client = Self::client()?;
-
     let mut credentials = HashMap::<&str, &str>::new();
     credentials.insert("email", &self.email);
     credentials.insert("password", &self.password);
 
-    http_client.post(IAQUALINK_LOGIN_URL)
+    reqwest::Client::new()
+      .post(IAQUALINK_LOGIN_URL)
       .json(&credentials)
       .send()
       .await?
@@ -281,8 +277,6 @@ impl Client {
   }
 
   pub async fn devices(&self, login_response: &LoginResponse) -> reqwest::Result<Vec<System>> {
-    let http_client = Self::client()?;
-
     let mut credentials = HashMap::<&str, &str>::new();
     credentials.insert("user_id", &login_response.id);
     credentials.insert("api_key", IAQUALINK_API_KEY);
@@ -290,82 +284,8 @@ impl Client {
 
     let url = reqwest::Url::parse_with_params(IAQUALINK_DEVICES_URL, &credentials).unwrap();
 
-    http_client.get(url)
-      .send()
-      .await?
-      .json()
-      .await
-  }
-
-  fn command_url(command: &str, serial: &str, login_response: &LoginResponse) -> reqwest::Url {
-    let mut params = HashMap::<&str, &str>::new();
-    params.insert("actionID", "command");
-    params.insert("command", command);
-    params.insert("serial", serial);
-    params.insert("sessionID", &login_response.session_id);
-
-    reqwest::Url::parse_with_params(IAQUALINK_SESSION_URL, &params).unwrap()
-  }
-
-  pub async fn home(&self, serial: &str, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
-    let http_client = Self::client()?;
-
-    http_client.get(Self::command_url(IAQUALINK_COMMAND_GET_HOME, serial, login_response))
-    .send()
-    .await?
-    .json()
-    .await
-  }
-
-  pub async fn device(&self, serial: &str, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
-    let http_client = Self::client()?;
-
-    http_client.get(Self::command_url(IAQUALINK_COMMAND_GET_DEVICES, serial, login_response))
-    .send()
-    .await?
-    .json()
-    .await
-  }
-
-  pub async fn site(&self, serial: &str, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
-    let http_client = Self::client()?;
-
-    let url = reqwest::Url::parse(IAQUALINK_DEVICES_V1_URL)
-      .and_then(|url| url.join(&format!("{}/site", serial)))
-      .unwrap();
-
-    http_client.get(url)
-      .bearer_auth(&login_response.user_pool_oauth.id_token)
-      .send()
-      .await?
-      .json()
-      .await
-  }
-
-  pub async fn info(&self, serial: &str, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
-    let http_client = Self::client()?;
-
-    let url = reqwest::Url::parse(IAQUALINK_DEVICES_V1_URL)
-      .and_then(|url| url.join(&format!("{}/info", serial)))
-      .unwrap();
-
-    http_client.get(url)
-    .bearer_auth(&login_response.user_pool_oauth.id_token)
-      .send()
-      .await?
-      .json()
-      .await
-  }
-
-  pub async fn features(&self, serial: &str, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
-    let http_client = Self::client()?;
-
-    let url = reqwest::Url::parse(IAQUALINK_DEVICES_V2_URL)
-      .and_then(|url| url.join(&format!("{}/features", serial)))
-      .unwrap();
-
-    http_client.get(url)
-      .bearer_auth(&login_response.user_pool_oauth.id_token)
+    reqwest::Client::new()
+      .get(url)
       .send()
       .await?
       .json()
