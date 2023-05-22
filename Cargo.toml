@@ -12,3 +12,12 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.64"
 serde_repr = "0.1.7"
 anyhow = "1.0.42"
+rusoto = "0.24.2"
+rumqttc = { version = "0.21", features = ["websocket"] }
+rusoto_iot_data = "0.48.0"
+rusoto_core = "0.48.0"
+rusoto_credential = "0.48.0"
+chrono = { version = "0.4.24", default-features = false, features = ["clock", "serde"] }
+
+[patch.crates-io]
+rumqttc = { path = "./rumqtt/rumqttc" }

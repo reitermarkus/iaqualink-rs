@@ -9,7 +9,7 @@ async fn main() -> anyhow::Result<()> {
     password: env::var("PASSWORD").unwrap(),
   };
 
-  let login_response = client.sign_in().await.unwrap();
+  let login_response = client.sign_in().await.expect("Login failed.");
   let _ = dbg!(&login_response);
 
   let devices_res = client.devices(&login_response).await?;
@@ -27,6 +27,9 @@ async fn main() -> anyhow::Result<()> {
 
     let shadow_res = device.shadow(&login_response).await;
     let _ = dbg!(shadow_res);
+
+    let subscribe_res = device.subscribe(&login_response).await;
+    let _ = dbg!(subscribe_res);
   }
 
   // let set_shadow_res = client.set_shadow(serial, &login_response, serde_json::json!({

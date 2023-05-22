@@ -1,6 +1,9 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
+use chrono::{DateTime, Utc};
 use reqwest::Method;
+use rusoto_iot_data::IotData;
 use serde::{Serialize, Deserialize};
 
 mod exo;
@@ -15,6 +18,7 @@ pub const IAQUALINK_LOGIN_URL: &'static str = "https://prod.zodiac-io.com/users/
 pub const IAQUALINK_DEVICES_URL: &'static str = "https://r-api.iaqualink.net/devices.json";
 pub const IAQUALINK_DEVICES_V1_URL: &'static str = "https://prod.zodiac-io.com/devices/v1/";
 pub const IAQUALINK_DEVICES_V2_URL: &'static str = "https://prod.zodiac-io.com/devices/v2/";
+pub const IAQUALINK_AWSIOT_ENDPOINT: &'static str = "a1zi08qpbrtjyq-ats.iot.us-east-1.amazonaws.com";
 
 pub const IAQUALINK_COMMAND_GET_DEVICES: &'static str = "get_devices";
 pub const IAQUALINK_COMMAND_GET_HOME: &'static str = "get_home";
@@ -60,8 +64,8 @@ pub struct CognitoPool {
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct LoginResponse {
   id: String,
-  created_at: String,
-  updated_at: String,
+  created_at: DateTime<Utc>,
+  updated_at: DateTime<Utc>,
   email: String,
   username: String,
   first_name: Option<String>,
@@ -256,38 +260,120 @@ pub struct DeviceShadow {
   ts: usize,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+#[serde(rename_all = "camelCase")]
+pub struct MqttResponse {
+  client_token: String,
+  metadata: serde_json::Value,
+  state: serde_json::Value,
+  timestamp: u64,
+  version: u32,
+}
+
 impl System {
-  fn request(&self, method: Method, path: &str, login_response: &LoginResponse) -> reqwest::RequestBuilder {
+  fn request(&self, method: Method, api_url: &str, path: &str, login_response: &LoginResponse) -> reqwest::RequestBuilder {
+    let url = reqwest::Url::parse(api_url)
+      .and_then(|url| url.join(&format!("{}/{}", self.serial_number, path)))
+      .unwrap();
+
+    println!("URL: {}", url);
+
     reqwest::Client::new()
-      .request(method, self.url(path))
-      .bearer_auth(&login_response.user_pool_oauth.id_token)
+      .request(method, url)
+      .header("Authorization", format!("{} {}", login_response.user_pool_oauth.token_type, login_response.user_pool_oauth.id_token))
   }
 
-  fn url(&self, path: &str) -> reqwest::Url {
-    reqwest::Url::parse(IAQUALINK_DEVICES_V1_URL)
-      .and_then(|url| url.join(&format!("{}/{}", self.serial_number, path)))
-      .unwrap()
-  }
+
 
   pub async fn site(&self, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
-    self.request(Method::GET, "site", login_response).send().await?.json().await
+    self.request(Method::GET, IAQUALINK_DEVICES_V2_URL, "site", login_response).send().await?.json().await
   }
 
   pub async fn info(&self, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
-    self.request(Method::GET, "info", login_response).send().await?.json().await
+    self.request(Method::GET, IAQUALINK_DEVICES_V2_URL, "info", login_response).send().await?.json().await
   }
 
   pub async fn features(&self, login_response: &LoginResponse) -> reqwest::Result<serde_json::Value> {
-    self.request(Method::GET, "features", login_response).send().await?.json().await
+    self.request(Method::GET, IAQUALINK_DEVICES_V2_URL, "features", login_response).send().await?.json().await
   }
 
   // See: https://community.home-assistant.io/t/jandy-iaqualink-pool-integration/105633/276
   pub async fn shadow(&self, login_response: &LoginResponse) -> reqwest::Result<DeviceShadow> {
-    self.request(Method::GET, "shadow", login_response).send().await?.json().await
+    self.request(Method::GET, IAQUALINK_DEVICES_V1_URL, "shadow", login_response).send().await?.json().await
   }
 
   pub async fn set_shadow<S: Serialize>(&self, login_response: &LoginResponse, value: S) -> reqwest::Result<serde_json::Value> {
-    self.request(Method::POST, "shadow", login_response).json(&value).send().await?.json().await
+    self.request(Method::POST, IAQUALINK_DEVICES_V1_URL, "shadow", login_response).json(&value).send().await?.json().await
+  }
+
+  pub async fn subscribe(&self, login_response: &LoginResponse) -> anyhow::Result<()> {
+    let thing_name = self.serial_number.clone();
+    let client_id = format!("{}_rust", login_response.cognito_pool.app_client_id);
+
+    let valid_for = {
+      let now = Utc::now();
+      let diff = login_response.credentials.expiration.signed_duration_since(now);
+      Some(diff.num_seconds())
+    };
+    let credential_provider = rusoto_credential::StaticProvider::new(
+      login_response.credentials.access_key_id.clone(),
+      login_response.credentials.secret_key.clone(),
+      Some(login_response.credentials.session_token.clone()),
+      valid_for,
+    );
+    let dispatcher = rusoto_core::request::HttpClient::new().unwrap();
+
+    let region = rusoto_core::Region::Custom {
+      name: login_response.cognito_pool.region.clone(),
+      endpoint: IAQUALINK_AWSIOT_ENDPOINT.to_owned(),
+    };
+    let client = rusoto_iot_data::IotDataClient::new_with(dispatcher, credential_provider.clone(), region.clone());
+
+    let shadow = client.get_thing_shadow(rusoto_iot_data::GetThingShadowRequest {
+      shadow_name: None,
+      thing_name: thing_name.clone(),
+    }).await;
+
+    dbg!(shadow);
+
+    use rumqttc::{v5::{MqttOptions, AsyncClient, Event, mqttbytes::{QoS, v5::{ConnectProperties, Packet}}}, Transport};
+
+    let mut mqtt_options = MqttOptions::new(client_id, format!("wss://{}/mqtt", IAQUALINK_AWSIOT_ENDPOINT), 443);
+    mqtt_options.set_transport(Transport::wss_with_default_config());
+    let mut connect_properties = ConnectProperties::new();
+    connect_properties.max_packet_size = Some(16 * 1024);
+    mqtt_options.set_connect_properties(connect_properties);
+    mqtt_options.aws_credential_provider = Some(std::sync::Arc::new(Box::new(credential_provider)));
+
+    let (mut client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
+
+    let topic_prefix = format!("$aws/things/{thing_name}/shadow");
+
+    client.subscribe(format!("{topic_prefix}/get/accepted"), QoS::AtLeastOnce).await?;
+    client.subscribe(format!("{topic_prefix}/get/rejected"), QoS::AtLeastOnce).await?;
+    client.subscribe(format!("{topic_prefix}/update/delta"), QoS::AtLeastOnce).await?;
+    client.subscribe(format!("{topic_prefix}/update/accepted"), QoS::AtLeastOnce).await?;
+    client.subscribe(format!("{topic_prefix}/update/documents"), QoS::AtLeastOnce).await?;
+    client.subscribe(format!("{topic_prefix}/update/rejected"), QoS::AtLeastOnce).await?;
+
+    loop {
+      if let Event::Incoming(notification) = eventloop.poll().await.unwrap() {
+
+        match notification {
+          Packet::Publish(state) => {
+            let topic = std::str::from_utf8(&state.topic).unwrap();
+            let state: MqttResponse = serde_json::from_slice(&state.payload).unwrap();
+            println!("Received {topic} = {:#?}", state);
+          }
+          packet => {
+            dbg!(packet);
+          },
+        }
+      }
+    }
+
+    Ok(())
   }
 }
 
@@ -321,4 +407,6 @@ impl Client {
       .json()
       .await
   }
+
+
 }
