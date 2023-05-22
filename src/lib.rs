@@ -185,30 +185,39 @@ pub struct EboxData {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct ExoState {
+  aws: AwsState,
+  equipment: SaltWaterChlorinatorEquipment,
+  vr: String,
+  main: Option<serde_json::Value>,
+  hmi: Option<serde_json::Value>,
+  schedules: Option<Schedules>,
+  state: Option<serde_json::Value>,
+  heating: Option<Heating>,
+  debug: Option<serde_json::Value>,
+  debug_main: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct VrState {
+  dt: String,
+  aws: AwsState,
+  ebox_data: EboxData,
+  equipment: RobotEquipment,
+  job_id: String,
+  sn: String,
+  vr: String
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 #[serde(untagged)]
 pub enum ReportedState {
   #[serde(rename_all = "camelCase")]
-  Exo {
-    aws: AwsState,
-    equipment: SaltWaterChlorinatorEquipment,
-    vr: String,
-    main: Option<serde_json::Value>,
-    hmi: Option<serde_json::Value>,
-    schedules: Option<Schedules>,
-    state: Option<serde_json::Value>,
-    heating: Option<Heating>,
-    debug: Option<serde_json::Value>,
-  },
+  Exo(ExoState),
   #[serde(rename_all = "camelCase")]
-  Vr {
-    dt: String,
-    aws: AwsState,
-    ebox_data: EboxData,
-    equipment: RobotEquipment,
-    job_id: String,
-    sn: String,
-    vr: String
-  },
+  Vr(VrState),
 }
 
 #[derive(Debug, Serialize, Deserialize)]

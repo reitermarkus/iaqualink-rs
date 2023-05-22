@@ -48,6 +48,13 @@ pub struct Auxiliary {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct VspSpeed {
+  min: usize,
+  max: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct SaltWaterChlorinator {
   amp: usize,
   temp: usize,
@@ -68,6 +75,7 @@ pub struct SaltWaterChlorinator {
   aux_1: Auxiliary,
   swc_low: usize,
   dual_link: usize,
+  vsp_speed: VspSpeed,
   exo_state: usize,
   aux_2: Auxiliary,
   boost_time: String,
