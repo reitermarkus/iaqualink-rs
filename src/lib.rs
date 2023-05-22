@@ -37,6 +37,27 @@ pub struct Client {
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+#[serde(rename_all = "PascalCase")]
+pub struct Credentials {
+  access_key_id: String,
+  expiration: DateTime<Utc>,
+  identity_id: String,
+  secret_key: String,
+  session_token: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+#[serde(rename_all = "camelCase")]
+pub struct CognitoPool {
+  app_client_id: String,
+  region: String,
+  domain: String,
+  pool_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct LoginResponse {
   id: String,
   created_at: String,
@@ -59,9 +80,9 @@ pub struct LoginResponse {
   time_zone: Option<String>,
   session_id: String,
   #[serde(rename = "cognitoPool")]
-  cognito_pool: serde_json::Value,
+  cognito_pool: CognitoPool,
   authentication_token: String,
-  credentials: serde_json::Value,
+  credentials: Credentials,
   #[serde(rename = "userPoolOAuth")]
   user_pool_oauth: PoolOAuth,
 }
