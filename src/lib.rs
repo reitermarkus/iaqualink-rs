@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::str::FromStr;
+use std::time::SystemTime;
 
 use chrono::{DateTime, Utc};
 use reqwest::Method;
-use rusoto_iot_data::IotData;
 use serde::{Serialize, Deserialize};
 
 mod exo;
@@ -313,29 +313,20 @@ impl System {
 
     let valid_for = {
       let now = Utc::now();
-      let diff = login_response.credentials.expiration.signed_duration_since(now);
-      Some(diff.num_seconds())
+      login_response.credentials.expiration.signed_duration_since(now)
     };
-    let credential_provider = rusoto_credential::StaticProvider::new(
+
+    let credentials = aws_credential_types::Credentials::new(
       login_response.credentials.access_key_id.clone(),
       login_response.credentials.secret_key.clone(),
       Some(login_response.credentials.session_token.clone()),
-      valid_for,
+      SystemTime::now().checked_add(valid_for.to_std().unwrap()),
+      "iaqualink",
     );
-    let dispatcher = rusoto_core::request::HttpClient::new().unwrap();
 
-    let region = rusoto_core::Region::Custom {
-      name: login_response.cognito_pool.region.clone(),
-      endpoint: IAQUALINK_AWSIOT_ENDPOINT.to_owned(),
-    };
-    let client = rusoto_iot_data::IotDataClient::new_with(dispatcher, credential_provider.clone(), region.clone());
 
-    let shadow = client.get_thing_shadow(rusoto_iot_data::GetThingShadowRequest {
-      shadow_name: None,
-      thing_name: thing_name.clone(),
-    }).await;
-
-    dbg!(shadow);
+    let credential_provider = credentials;
+    let region = login_response.cognito_pool.region.clone();
 
     use rumqttc::{v5::{MqttOptions, AsyncClient, Event, mqttbytes::{QoS, v5::{ConnectProperties, Packet}}}, Transport};
 
