@@ -1,7 +1,13 @@
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::SystemTime;
+use std::sync::Arc;
 
+use aws_smithy_http::body::SdkBody;
+use aws_sig_auth::signer::{OperationSigningConfig, RequestConfig, SigV4Signer};
+use aws_credential_types::provider::ProvideCredentials;
+use aws_types::region::{Region, SigningRegion};
+use aws_types::SigningService;
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Serialize, Deserialize};
@@ -326,7 +332,7 @@ impl System {
 
 
     let credential_provider = credentials;
-    let region = login_response.cognito_pool.region.clone();
+    let region = Region::new(login_response.cognito_pool.region.clone());
 
     use rumqttc::{v5::{MqttOptions, AsyncClient, Event, mqttbytes::{QoS, v5::{ConnectProperties, Packet}}}, Transport};
 
@@ -335,7 +341,37 @@ impl System {
     let mut connect_properties = ConnectProperties::new();
     connect_properties.max_packet_size = Some(16 * 1024);
     mqtt_options.set_connect_properties(connect_properties);
-    mqtt_options.aws_credential_provider = Some(std::sync::Arc::new(Box::new(credential_provider)));
+
+
+    mqtt_options.set_request_modifier(move |request| {
+      let credential_provider = credential_provider.clone();
+      let region = region.clone();
+
+      async move {
+          let request_config = RequestConfig {
+              request_ts: SystemTime::now(),
+              region: &SigningRegion::from(region.clone()),
+              service: &SigningService::from_static("iotdata"),
+              payload_override: None,
+          };
+
+        let (parts, body) = request.into_parts();
+        let mut request: http::Request<SdkBody> = http::Request::from_parts(parts, SdkBody::empty());
+
+        let signer = SigV4Signer::new();
+        signer.sign(
+          &OperationSigningConfig::default_config(),
+          &request_config,
+          &credential_provider.provide_credentials().await.unwrap(),
+          &mut request,
+        ).unwrap();
+
+        let (parts, _) = request.into_parts();
+        http::Request::from_parts(parts, body)
+      }
+    });
+
+    // mqtt_options.aws_credential_provider = Some(Arc::new(Box::new(credential_provider)));
 
     let (mut client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
 
