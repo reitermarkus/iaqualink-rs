@@ -1965,6 +1965,6 @@ mod tests {
     }
     "#;
 
-    serde_json::parse::<MqttResponse>(response);
+    serde_json::from_str::<MqttResponse>(response);
   }
 }

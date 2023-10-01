@@ -21,4 +21,5 @@ aws-smithy-http = "0.55"
 http = "0.2"
 
 [patch.crates-io]
-rumqttc = { path = "./rumqtt/rumqttc" }
+# Remove once https://github.com/bytebeamio/rumqtt/pull/642 is in a new release.
+rumqttc = { git = "https://github.com/bytebeamio/rumqtt" }
