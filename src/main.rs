@@ -4,10 +4,7 @@ use iaqualink::Client;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-  let client = Client {
-    email: env::var("EMAIL").unwrap(),
-    password: env::var("PASSWORD").unwrap(),
-  };
+  let client = Client { email: env::var("EMAIL").unwrap(), password: env::var("PASSWORD").unwrap() };
 
   let login_response = client.sign_in().await.expect("Login failed.");
   let _ = dbg!(&login_response);

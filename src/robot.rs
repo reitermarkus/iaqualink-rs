@@ -1,4 +1,6 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+
+use super::AwsState;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
@@ -96,4 +98,35 @@ pub struct Robot {
   total_hours: usize,
   vr: String,
   custom_intensity: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct RobotEquipment {
+  robot: Robot,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+#[serde(rename_all = "camelCase")]
+pub struct EboxData {
+  complete_cleaner_pn: String,
+  complete_cleaner_sn: String,
+  control_box_pn: String,
+  control_box_sn: String,
+  motor_block_sn: String,
+  power_supply_sn: String,
+  sensor_block_sn: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct VrState {
+  dt: String,
+  aws: AwsState,
+  ebox_data: EboxData,
+  equipment: RobotEquipment,
+  job_id: String,
+  sn: String,
+  vr: String,
 }

@@ -1,5 +1,7 @@
-use serde::{Serialize, Deserialize};
-use serde_repr::{Serialize_repr, Deserialize_repr};
+use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
+
+use super::AwsState;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
@@ -20,20 +22,20 @@ pub struct FilterPump {
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
 #[repr(u8)]
 pub enum Color {
-  AlpineWhite = 0,
-  SkyBlue = 1,
-  CobaltBlue = 2,
-  CarribeanBlue = 3,
-  SpringGreen = 4,
-  EmeraldGreen = 5,
-  EmeraldRose = 6,
-  Magenta = 7,
-  Violet = 8,
-  SlowFade = 9,
-  FastFade = 10,
+  AlpineWhite      = 0,
+  SkyBlue          = 1,
+  CobaltBlue       = 2,
+  CarribeanBlue    = 3,
+  SpringGreen      = 4,
+  EmeraldGreen     = 5,
+  EmeraldRose      = 6,
+  Magenta          = 7,
+  Violet           = 8,
+  SlowFade         = 9,
+  FastFade         = 10,
   BeautifulAmerica = 11,
-  CarnivalTuesday = 12,
-  DiscoStyle = 13,
+  CarnivalTuesday  = 12,
+  DiscoStyle       = 13,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -84,4 +86,67 @@ pub struct SaltWaterChlorinator {
   error_state: usize,
   sn: String,
   filter_pump: FilterPump,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct SaltWaterChlorinatorEquipment {
+  swc_0: SaltWaterChlorinator,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct Timer {
+  start: String,
+  end: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct Schedule {
+  active: usize,
+  enabled: usize,
+  endpoint: String,
+  id: String,
+  name: String,
+  timer: Timer,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct Schedules {
+  programmed: usize,
+  supported: usize,
+  sch1: Schedule,
+  sch2: Schedule,
+  sch3: Schedule,
+  sch4: Schedule,
+  sch9: Schedule,
+  sch10: Schedule,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct Heating {
+  enabled: usize,
+  priority_enabled: usize,
+  sp: usize,
+  sp_max: usize,
+  sp_min: usize,
+  state: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
+pub struct ExoState {
+  aws: AwsState,
+  equipment: SaltWaterChlorinatorEquipment,
+  vr: String,
+  main: Option<serde_json::Value>,
+  hmi: Option<serde_json::Value>,
+  schedules: Option<Schedules>,
+  state: Option<serde_json::Value>,
+  heating: Option<Heating>,
+  debug: Option<serde_json::Value>,
+  debug_main: Option<serde_json::Value>,
 }
