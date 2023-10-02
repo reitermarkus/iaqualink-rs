@@ -25,8 +25,12 @@ async fn main() -> anyhow::Result<()> {
     let shadow_res = device.shadow(&login_response).await;
     let _ = dbg!(shadow_res);
 
-    let subscribe_res = device.subscribe(&login_response).await;
-    let _ = dbg!(subscribe_res);
+    let mut subscription = device.subscribe(&login_response).await?;
+
+    loop {
+      let (topic, response) = subscription.recv().await?;
+      println!("Received {topic}: {response:#?}");
+    }
   }
 
   // let set_shadow_res = client.set_shadow(serial, &login_response, serde_json::json!({

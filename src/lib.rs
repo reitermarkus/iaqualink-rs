@@ -1,10 +1,6 @@
-use std::{
-  collections::HashMap,
-  str::{self, FromStr},
-  sync::Arc,
-  time::SystemTime,
-};
+use std::{collections::HashMap, str, time::SystemTime};
 
+use anyhow::Context;
 use aws_credential_types::provider::ProvideCredentials;
 use aws_sig_auth::signer::{OperationSigningConfig, RequestConfig, SigV4Signer};
 use aws_smithy_http::body::SdkBody;
@@ -14,6 +10,7 @@ use aws_types::{
 };
 use chrono::{DateTime, Utc};
 use reqwest::Method;
+use rumqttc::{v5::{mqttbytes::v5::{SubAck, Packet}, EventLoop, Event}, Outgoing};
 use serde::{Deserialize, Serialize};
 
 mod exo;
@@ -221,8 +218,8 @@ pub enum MqttResponse {
   },
   #[serde(rename_all = "camelCase")]
   UpdateDelta {
-    state: Option<MqttState>,
-    metadata: Option<MqttMetadata>,
+    state: serde_json::Value,
+    metadata: MqttMetadataTimestamp,
     timestamp: u64,
     client_token: Option<String>,
     version: u32,
@@ -250,8 +247,6 @@ impl System {
   ) -> reqwest::RequestBuilder {
     let url =
       reqwest::Url::parse(api_url).and_then(|url| url.join(&format!("{}/{}", self.serial_number, path))).unwrap();
-
-    println!("URL: {}", url);
 
     reqwest::Client::new().request(method, url).header(
       "Authorization",
@@ -290,7 +285,7 @@ impl System {
       .await
   }
 
-  pub async fn subscribe(&self, login_response: &LoginResponse) -> anyhow::Result<()> {
+  pub async fn subscribe(&self, login_response: &LoginResponse) -> anyhow::Result<Subscription> {
     let thing_name = self.serial_number.clone();
     let client_id = format!("{}_rust", login_response.cognito_pool.app_client_id);
 
@@ -357,7 +352,7 @@ impl System {
       }
     });
 
-    let (mut client, mut eventloop) = AsyncClient::new(mqtt_options, 10);
+    let (client, mut event_loop) = AsyncClient::new(mqtt_options, 10);
 
     let topic_prefix = format!("$aws/things/{thing_name}/shadow");
 
@@ -368,27 +363,58 @@ impl System {
     client.subscribe(format!("{topic_prefix}/update/documents"), QoS::AtLeastOnce).await?;
     client.subscribe(format!("{topic_prefix}/update/rejected"), QoS::AtLeastOnce).await?;
 
-    loop {
-      if let Event::Incoming(notification) = eventloop.poll().await.unwrap() {
-        match notification {
-          Packet::Publish(state) => {
-            let topic = str::from_utf8(&state.topic).unwrap();
+    Ok(Subscription { event_loop })
+  }
+}
 
-            match serde_json::from_slice::<MqttResponse>(&state.payload) {
-              Ok(state) => println!("Received {topic} = {:#?}", state),
-              Err(err) => {
-                panic!("Received invalid payload for {topic}: {}\n{}", err, str::from_utf8(&state.payload).unwrap())
-              },
+pub struct Subscription {
+  event_loop: EventLoop,
+}
+
+impl Subscription {
+  pub async fn recv(&mut self) -> anyhow::Result<(String, MqttResponse)> {
+    loop {
+      match self.event_loop.poll().await {
+        Ok(event) => match event {
+          Event::Incoming(packet) => match packet {
+            Packet::Publish(state) => {
+              let topic = str::from_utf8(&state.topic).unwrap();
+
+              match serde_json::from_slice::<MqttResponse>(&state.payload) {
+                Ok(response) => return Ok((topic.to_owned(), response)),
+                Err(err) => {
+                  let context = format!("Received invalid payload for {topic}: {}\n{}", err, str::from_utf8(&state.payload).unwrap());
+                  return Err(err).context(context)
+                },
+              }
+            },
+            Packet::SubAck(SubAck { pkid, .. }) => {
+              log::info!("Subscription acknowledged: {pkid}");
+            },
+            Packet::ConnAck(conn_ack) => {
+              log::info!("Connection acknowledged: {conn_ack:?}");
+            },
+            Packet::PingResp(_) => {
+              log::info!("Pong.");
             }
+            packet => log::warn!("unexpected incoming packet: {packet:?}"),
           },
-          packet => {
-            dbg!(packet);
+          Event::Outgoing(packet) => match packet {
+            Outgoing::PubAck(id) => {
+              log::info!("Publication acknowledged: {id}");
+            }
+            Outgoing::Subscribe(id) => {
+              log::info!("Subscribing: {id}");
+            },
+            Outgoing::PingReq => {
+              log::info!("Ping.");
+            },
+            packet => log::warn!("unexpected outgoing packet: {packet:?}"),
           },
-        }
+        },
+        Err(err) => return Err(err.into()),
       }
     }
-
-    Ok(())
   }
 }
 
@@ -1966,5 +1992,24 @@ mod tests {
     "#;
 
     serde_json::from_str::<MqttResponse>(response);
+  }
+
+  #[test]
+  fn mqtt_response_update_delta() {
+    let json = r#"
+      {
+        "version":2525306,
+        "timestamp":1696250213,
+        "state":{
+          "schedules":{"sch1":{"timer":{"start":"09:13","end":"11:00"}},"sch2":{"timer":{"end":"20:13"}},"sch3":{"timer":{"start":"09:13","end":"11:00"}},"sch4":{"timer":{"end":"20:13"}}}
+        },
+        "metadata":{
+          "schedules":{"sch1":{"timer":{"start":{"timestamp":1696250173},"end":{"timestamp":1696250173}}},"sch2":{"timer":{"end":{"timestamp":1696250173}}},"sch3":{"timer":{"start":{"timestamp":1696250173},"end":{"timestamp":1696250173}}},"sch4":{"timer":{"end":{"timestamp":1696250173}}}}
+        }
+      }
+    "#;
+
+    let mqtt_response = serde_json::from_str::<MqttResponse>(json).unwrap();
+    assert!(matches!(mqtt_response, MqttResponse::UpdateDelta { .. }));
   }
 }

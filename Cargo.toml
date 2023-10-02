@@ -1,7 +1,7 @@
 [package]
 name = "iaqualink"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -19,6 +19,7 @@ aws-sig-auth = "0.55"
 aws-types = "0.55"
 aws-smithy-http = "0.55"
 http = "0.2"
+log = { version = "0.4.20", default-features = false }
 
 [patch.crates-io]
 # Remove once https://github.com/bytebeamio/rumqtt/pull/642 is in a new release.
