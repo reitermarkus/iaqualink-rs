@@ -14,7 +14,7 @@ serde_repr = "0.1.7"
 anyhow = "1.0.42"
 rumqttc = { version = "0.22", features = ["websocket"] }
 chrono = { version = "0.4.24", default-features = false, features = ["clock", "serde"] }
-aws-credential-types = "0.56"
+aws-credential-types = "1.0"
 aws-sig-auth = "0.56"
 aws-types = "0.56"
 aws-smithy-http = "0.56"
