@@ -2,20 +2,22 @@ use std::{collections::HashMap, str, time::SystemTime};
 
 use anyhow::Context;
 use aws_credential_types::provider::ProvideCredentials;
-use aws_sig_auth::signer::{OperationSigningConfig, RequestConfig, SigV4Signer};
-use aws_smithy_http::body::SdkBody;
-use aws_types::{
-  region::{Region, SigningRegion},
-  SigningService,
+use aws_sigv4::{
+  http_request::{sign, SignableBody, SignableRequest, SigningSettings},
+  sign::v4,
 };
+use aws_types::region::Region;
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use rumqttc::{
   v5::{
-    mqttbytes::v5::{Packet, SubAck},
-    Event, EventLoop,
+    mqttbytes::{
+      v5::{ConnectProperties, Packet, SubAck},
+      QoS,
+    },
+    AsyncClient, Event, EventLoop, MqttOptions,
   },
-  Outgoing,
+  Outgoing, Transport,
 };
 use serde::{Deserialize, Serialize};
 
@@ -311,54 +313,45 @@ impl System {
     let credential_provider = credentials;
     let region = Region::new(login_response.cognito_pool.region.clone());
 
-    use rumqttc::{
-      v5::{
-        mqttbytes::{
-          v5::{ConnectProperties, Packet},
-          QoS,
-        },
-        AsyncClient, Event, MqttOptions,
-      },
-      Transport,
-    };
-
     let mut mqtt_options = MqttOptions::new(client_id, format!("wss://{}/mqtt", IAQUALINK_AWSIOT_ENDPOINT), 443);
     mqtt_options.set_transport(Transport::wss_with_default_config());
     let mut connect_properties = ConnectProperties::new();
     connect_properties.max_packet_size = Some(16 * 1024);
     mqtt_options.set_connect_properties(connect_properties);
 
-    mqtt_options.set_request_modifier(move |request| {
+    mqtt_options.set_request_modifier(move |mut request| {
       let credential_provider = credential_provider.clone();
       let region = region.clone();
 
       async move {
-        let request_config = RequestConfig {
-          request_ts: SystemTime::now(),
-          region: &SigningRegion::from(region.clone()),
-          service: &SigningService::from_static("iotdata"),
-          payload_override: None,
-        };
+        let credentials = credential_provider.provide_credentials().await.unwrap();
+        let identity = credentials.into();
+        let signing_params = v4::SigningParams::builder()
+          .identity(&identity)
+          .region(region.as_ref())
+          .name("iotdata")
+          .time(SystemTime::now())
+          .settings(SigningSettings::default())
+          .build()
+          .unwrap()
+          .into();
 
-        let (parts, body) = request.into_parts();
-        let mut request: http::Request<SdkBody> = http::Request::from_parts(parts, SdkBody::empty());
+        let signable_request = SignableRequest::new(
+          request.method().as_str(),
+          request.uri().to_string(),
+          request.headers().iter().map(|(name, value)| (name.as_str(), value.to_str().unwrap())),
+          SignableBody::Bytes(&[]),
+        )
+        .unwrap();
 
-        let signer = SigV4Signer::new();
-        signer
-          .sign(
-            &OperationSigningConfig::default_config(),
-            &request_config,
-            &credential_provider.provide_credentials().await.unwrap(),
-            &mut request,
-          )
-          .unwrap();
+        let (signing_instructions, _signature) = sign(signable_request, &signing_params).unwrap().into_parts();
+        signing_instructions.apply_to_request_http1x(&mut request);
 
-        let (parts, _) = request.into_parts();
-        http::Request::from_parts(parts, body)
+        request
       }
     });
 
-    let (client, mut event_loop) = AsyncClient::new(mqtt_options, 10);
+    let (client, event_loop) = AsyncClient::new(mqtt_options, 10);
 
     let topic_prefix = format!("$aws/things/{thing_name}/shadow");
 
