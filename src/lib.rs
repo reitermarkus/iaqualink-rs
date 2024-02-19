@@ -58,86 +58,86 @@ pub struct Client {
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 #[serde(rename_all = "PascalCase")]
 pub struct Credentials {
-  access_key_id: String,
-  expiration: DateTime<Utc>,
-  identity_id: String,
-  secret_key: String,
-  session_token: String,
+  pub access_key_id: String,
+  pub expiration: DateTime<Utc>,
+  pub identity_id: String,
+  pub secret_key: String,
+  pub session_token: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 #[serde(rename_all = "camelCase")]
 pub struct CognitoPool {
-  app_client_id: String,
-  region: String,
-  domain: String,
-  pool_id: String,
+  pub app_client_id: String,
+  pub region: String,
+  pub domain: String,
+  pub pool_id: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct LoginResponse {
-  id: u32,
-  created_at: DateTime<Utc>,
-  updated_at: DateTime<Utc>,
-  email: String,
-  username: String,
-  first_name: Option<String>,
-  last_name: Option<String>,
-  address: Option<String>,
-  address_1: Option<String>,
-  address_2: Option<String>,
-  postal_code: String,
-  city: Option<String>,
-  country: Option<String>,
-  opt_in_1: String,
-  opt_in_2: String,
-  phone: String,
-  role: String,
-  state: String,
-  time_zone: Option<String>,
-  session_id: String,
+  pub id: u32,
+  pub created_at: DateTime<Utc>,
+  pub updated_at: DateTime<Utc>,
+  pub email: String,
+  pub username: String,
+  pub first_name: Option<String>,
+  pub last_name: Option<String>,
+  pub address: Option<String>,
+  pub address_1: Option<String>,
+  pub address_2: Option<String>,
+  pub postal_code: String,
+  pub city: Option<String>,
+  pub country: Option<String>,
+  pub opt_in_1: String,
+  pub opt_in_2: String,
+  pub phone: String,
+  pub role: String,
+  pub state: String,
+  pub time_zone: Option<String>,
+  pub session_id: String,
   #[serde(rename = "cognitoPool")]
-  cognito_pool: CognitoPool,
-  authentication_token: String,
-  credentials: Credentials,
+  pub cognito_pool: CognitoPool,
+  pub authentication_token: String,
+  pub credentials: Credentials,
   #[serde(rename = "userPoolOAuth")]
-  user_pool_oauth: PoolOAuth,
+  pub user_pool_oauth: PoolOAuth,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 #[serde(rename_all = "PascalCase")]
 pub struct PoolOAuth {
-  access_token: String,
-  expires_in: u16,
-  token_type: String,
-  refresh_token: String,
-  id_token: String,
+  pub access_token: String,
+  pub expires_in: u16,
+  pub token_type: String,
+  pub refresh_token: String,
+  pub id_token: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct System {
-  id: u32,
-  name: String,
-  created_at: String,
-  updated_at: String,
-  device_type: String,
-  firmware_version: Option<String>,
-  last_activity_at: Option<String>,
-  owner_id: u32,
-  serial_number: String,
-  target_firmware_version: Option<String>,
-  update_firmware_start_at: Option<String>,
-  updating: bool,
+  pub id: u32,
+  pub name: String,
+  pub created_at: String,
+  pub updated_at: String,
+  pub device_type: String,
+  pub firmware_version: Option<String>,
+  pub last_activity_at: Option<String>,
+  pub owner_id: u32,
+  pub serial_number: String,
+  pub target_firmware_version: Option<String>,
+  pub update_firmware_start_at: Option<String>,
+  pub updating: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct State {
-  reported: serde_json::Value,
+  pub reported: serde_json::Value,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -150,9 +150,9 @@ pub enum AwsStateStatus {
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct AwsState {
-  session_id: String,
-  status: AwsStateStatus,
-  timestamp: u64,
+  pub session_id: String,
+  pub status: AwsStateStatus,
+  pub timestamp: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -160,9 +160,9 @@ pub struct AwsState {
 #[serde(untagged)]
 pub enum ReportedState {
   #[serde(rename_all = "camelCase")]
-  Exo(ExoState),
+  Exo(Box<ExoState>),
   #[serde(rename_all = "camelCase")]
-  Vr(VrState),
+  Vr(Box<VrState>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -176,9 +176,9 @@ pub struct DeviceState {
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceShadow {
-  device_id: String,
-  state: DeviceState,
-  ts: u64,
+  pub device_id: String,
+  pub state: DeviceState,
+  pub ts: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

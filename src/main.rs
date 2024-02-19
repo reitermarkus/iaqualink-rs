@@ -27,8 +27,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut subscription = device.subscribe(&login_response).await?;
 
-    loop {
-      let (topic, response) = subscription.recv().await?;
+    while let Ok((topic, response)) = subscription.recv().await {
       println!("Received {topic}: {response:#?}");
     }
   }

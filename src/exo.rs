@@ -6,17 +6,17 @@ use super::AwsState;
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Sensor {
-  sensor_type: String,
-  state: usize,
-  value: usize,
+  pub sensor_type: String,
+  pub state: usize,
+  pub value: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct FilterPump {
   #[serde(rename = "type")]
-  pump_type: usize,
-  state: usize,
+  pub pump_type: usize,
+  pub state: usize,
 }
 
 #[derive(Debug, Serialize_repr, Deserialize_repr)]
@@ -42,50 +42,50 @@ pub enum Color {
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Auxiliary {
   #[serde(rename = "type")]
-  aux_type: String,
-  color: Color,
-  mode: usize,
-  state: usize,
+  pub aux_type: String,
+  pub color: Color,
+  pub mode: usize,
+  pub state: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct VspSpeed {
-  min: usize,
-  max: usize,
+  pub min: usize,
+  pub max: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct SaltWaterChlorinator {
-  amp: usize,
-  temp: usize,
-  vr: String,
-  sns_3: Sensor,
-  orp_sp: usize,
-  production: usize,
-  boost: usize,
-  ph_sp: usize,
-  swc: usize,
-  version: String,
-  sns_2: Sensor,
-  low: usize,
-  vsp: usize,
-  lang: usize,
-  ph_only: usize,
-  sns_1: Sensor,
-  aux_1: Auxiliary,
-  swc_low: usize,
-  dual_link: usize,
-  vsp_speed: VspSpeed,
-  exo_state: usize,
-  aux_2: Auxiliary,
-  boost_time: String,
-  error_code: usize,
-  aux230: usize,
-  error_state: usize,
-  sn: String,
-  filter_pump: FilterPump,
+  pub amp: usize,
+  pub temp: usize,
+  pub vr: String,
+  pub sns_3: Sensor,
+  pub orp_sp: usize,
+  pub production: usize,
+  pub boost: usize,
+  pub ph_sp: usize,
+  pub swc: usize,
+  pub version: String,
+  pub sns_2: Sensor,
+  pub low: usize,
+  pub vsp: usize,
+  pub lang: usize,
+  pub ph_only: usize,
+  pub sns_1: Sensor,
+  pub aux_1: Auxiliary,
+  pub swc_low: usize,
+  pub dual_link: usize,
+  pub vsp_speed: VspSpeed,
+  pub exo_state: usize,
+  pub aux_2: Auxiliary,
+  pub boost_time: String,
+  pub error_code: usize,
+  pub aux230: usize,
+  pub error_state: usize,
+  pub sn: String,
+  pub filter_pump: FilterPump,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -97,56 +97,56 @@ pub struct SaltWaterChlorinatorEquipment {
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Timer {
-  start: String,
-  end: String,
+  pub start: String,
+  pub end: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Schedule {
-  active: usize,
-  enabled: usize,
-  endpoint: String,
-  id: String,
-  name: String,
-  timer: Timer,
+  pub active: usize,
+  pub enabled: usize,
+  pub endpoint: String,
+  pub id: String,
+  pub name: String,
+  pub timer: Timer,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Schedules {
-  programmed: usize,
-  supported: usize,
-  sch1: Schedule,
-  sch2: Schedule,
-  sch3: Schedule,
-  sch4: Schedule,
-  sch9: Schedule,
-  sch10: Schedule,
+  pub programmed: usize,
+  pub supported: usize,
+  pub sch1: Schedule,
+  pub sch2: Schedule,
+  pub sch3: Schedule,
+  pub sch4: Schedule,
+  pub sch9: Schedule,
+  pub sch10: Schedule,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct Heating {
-  enabled: usize,
-  priority_enabled: usize,
-  sp: usize,
-  sp_max: usize,
-  sp_min: usize,
-  state: usize,
+  pub enabled: usize,
+  pub priority_enabled: usize,
+  pub sp: usize,
+  pub sp_max: usize,
+  pub sp_min: usize,
+  pub state: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct ExoState {
-  aws: AwsState,
-  equipment: SaltWaterChlorinatorEquipment,
-  vr: String,
-  main: Option<serde_json::Value>,
-  hmi: Option<serde_json::Value>,
-  schedules: Option<Schedules>,
-  state: Option<serde_json::Value>,
-  heating: Option<Heating>,
-  debug: Option<serde_json::Value>,
-  debug_main: Option<serde_json::Value>,
+  pub aws: AwsState,
+  pub equipment: SaltWaterChlorinatorEquipment,
+  pub vr: String,
+  pub main: Option<serde_json::Value>,
+  pub hmi: Option<serde_json::Value>,
+  pub schedules: Option<Schedules>,
+  pub state: Option<serde_json::Value>,
+  pub heating: Option<Heating>,
+  pub debug: Option<serde_json::Value>,
+  pub debug_main: Option<serde_json::Value>,
 }
