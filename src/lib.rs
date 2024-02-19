@@ -10,7 +10,13 @@ use aws_types::{
 };
 use chrono::{DateTime, Utc};
 use reqwest::Method;
-use rumqttc::{v5::{mqttbytes::v5::{SubAck, Packet}, EventLoop, Event}, Outgoing};
+use rumqttc::{
+  v5::{
+    mqttbytes::v5::{Packet, SubAck},
+    Event, EventLoop,
+  },
+  Outgoing,
+};
 use serde::{Deserialize, Serialize};
 
 mod exo;
@@ -383,7 +389,11 @@ impl Subscription {
               match serde_json::from_slice::<MqttResponse>(&state.payload) {
                 Ok(response) => return Ok((topic.to_owned(), response)),
                 Err(err) => {
-                  let context = format!("Received invalid payload for {topic}: {}\n{}", err, str::from_utf8(&state.payload).unwrap());
+                  let context = format!(
+                    "Received invalid payload for {topic}: {}\n{}",
+                    err,
+                    str::from_utf8(&state.payload).unwrap()
+                  );
                   return Err(err).context(context)
                 },
               }
@@ -396,13 +406,13 @@ impl Subscription {
             },
             Packet::PingResp(_) => {
               log::info!("Pong.");
-            }
+            },
             packet => log::warn!("unexpected incoming packet: {packet:?}"),
           },
           Event::Outgoing(packet) => match packet {
             Outgoing::PubAck(id) => {
               log::info!("Publication acknowledged: {id}");
-            }
+            },
             Outgoing::Subscribe(id) => {
               log::info!("Subscribing: {id}");
             },
