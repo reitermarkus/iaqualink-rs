@@ -27,25 +27,25 @@ pub use exo::*;
 mod robot;
 pub use robot::*;
 
-pub const IAQUALINK_API_KEY: &'static str = "EOOEMOW4YR6QNB07";
-pub const IAQUALINK_SESSION_URL: &'static str = "https://p-api.iaqualink.net/v1/mobile/session.json";
-pub const IAQUALINK_LOGIN_URL: &'static str = "https://prod.zodiac-io.com/users/v1/login";
-pub const IAQUALINK_DEVICES_URL: &'static str = "https://r-api.iaqualink.net/devices.json";
-pub const IAQUALINK_DEVICES_V1_URL: &'static str = "https://prod.zodiac-io.com/devices/v1/";
-pub const IAQUALINK_DEVICES_V2_URL: &'static str = "https://prod.zodiac-io.com/devices/v2/";
-pub const IAQUALINK_AWSIOT_ENDPOINT: &'static str = "a1zi08qpbrtjyq-ats.iot.us-east-1.amazonaws.com";
+pub const IAQUALINK_API_KEY: &str = "EOOEMOW4YR6QNB07";
+pub const IAQUALINK_SESSION_URL: &str = "https://p-api.iaqualink.net/v1/mobile/session.json";
+pub const IAQUALINK_LOGIN_URL: &str = "https://prod.zodiac-io.com/users/v1/login";
+pub const IAQUALINK_DEVICES_URL: &str = "https://r-api.iaqualink.net/devices.json";
+pub const IAQUALINK_DEVICES_V1_URL: &str = "https://prod.zodiac-io.com/devices/v1/";
+pub const IAQUALINK_DEVICES_V2_URL: &str = "https://prod.zodiac-io.com/devices/v2/";
+pub const IAQUALINK_AWSIOT_ENDPOINT: &str = "a1zi08qpbrtjyq-ats.iot.us-east-1.amazonaws.com";
 
-pub const IAQUALINK_COMMAND_GET_DEVICES: &'static str = "get_devices";
-pub const IAQUALINK_COMMAND_GET_HOME: &'static str = "get_home";
-pub const IAQUALINK_COMMAND_GET_ONETOUCH: &'static str = "get_onetouch";
-pub const IAQUALINK_COMMAND_SET_AUX: &'static str = "set_aux";
-pub const IAQUALINK_COMMAND_SET_LIGHT: &'static str = "set_light";
-pub const IAQUALINK_COMMAND_SET_POOL_HEATER: &'static str = "set_pool_heater";
-pub const IAQUALINK_COMMAND_SET_POOL_PUMP: &'static str = "set_pool_pump";
-pub const IAQUALINK_COMMAND_SET_SOLAR_HEATER: &'static str = "set_solar_heater";
-pub const IAQUALINK_COMMAND_SET_SPA_HEATER: &'static str = "set_spa_heater";
-pub const IAQUALINK_COMMAND_SET_SPA_PUMP: &'static str = "set_spa_pump";
-pub const IAQUALINK_COMMAND_SET_TEMPS: &'static str = "set_temps";
+pub const IAQUALINK_COMMAND_GET_DEVICES: &str = "get_devices";
+pub const IAQUALINK_COMMAND_GET_HOME: &str = "get_home";
+pub const IAQUALINK_COMMAND_GET_ONETOUCH: &str = "get_onetouch";
+pub const IAQUALINK_COMMAND_SET_AUX: &str = "set_aux";
+pub const IAQUALINK_COMMAND_SET_LIGHT: &str = "set_light";
+pub const IAQUALINK_COMMAND_SET_POOL_HEATER: &str = "set_pool_heater";
+pub const IAQUALINK_COMMAND_SET_POOL_PUMP: &str = "set_pool_pump";
+pub const IAQUALINK_COMMAND_SET_SOLAR_HEATER: &str = "set_solar_heater";
+pub const IAQUALINK_COMMAND_SET_SPA_HEATER: &str = "set_spa_heater";
+pub const IAQUALINK_COMMAND_SET_SPA_PUMP: &str = "set_spa_pump";
+pub const IAQUALINK_COMMAND_SET_TEMPS: &str = "set_temps";
 
 #[derive(Default, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
