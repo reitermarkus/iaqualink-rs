@@ -12,7 +12,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.64"
 serde_repr = "0.1.7"
 anyhow = "1.0.42"
-rumqttc = { version = "0.23", features = ["websocket"] }
+rumqttc = { version = "0.24", features = ["websocket"] }
 chrono = { version = "0.4.24", default-features = false, features = ["clock", "serde"] }
 aws-credential-types = "1"
 aws-types = "1"
